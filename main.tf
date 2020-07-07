@@ -1,7 +1,7 @@
 locals {
   cluster_encryption_config = {
-    resources         = var.cluster_encryption_config_resources
-    provider_key_arn  = var.enabled && var.cluster_encryption_config_enabled && var.cluster_encryption_config_kms_key_id == "" ? join("", aws_kms_key.cluster.*.arn) : var.cluster_encryption_config_kms_key_id
+    resources        = var.cluster_encryption_config_resources
+    provider_key_arn = var.enabled && var.cluster_encryption_config_enabled && var.cluster_encryption_config_kms_key_id == "" ? join("", aws_kms_key.cluster.*.arn) : var.cluster_encryption_config_kms_key_id
   }
 }
 
@@ -114,7 +114,7 @@ resource "aws_cloudwatch_log_group" "default" {
 }
 
 resource "aws_kms_key" "cluster" {
-  count                   = var.enabled && var.enable_cluster_encryption_config && var.cluster_encryption_config_kms_key_id == "" ? 1 : 0
+  count                   = var.enabled && var.cluster_encryption_config_enabled && var.cluster_encryption_config_kms_key_id == "" ? 1 : 0
   description             = "EKS Cluster ${module.label.id} Encryption Config KMS Key"
   enable_key_rotation     = var.cluster_encryption_config_kms_key_enable_key_rotation
   deletion_window_in_days = var.cluster_encryption_config_kms_key_deletion_window_in_days
@@ -123,7 +123,7 @@ resource "aws_kms_key" "cluster" {
 }
 
 resource "aws_kms_alias" "cluster" {
-  count         = var.enabled && var.enable_cluster_encryption_config && var.cluster_encryption_config_kms_key_id == "" ? 1 : 0
+  count         = var.enabled && var.cluster_encryption_config_enabled && var.cluster_encryption_config_kms_key_id == "" ? 1 : 0
   name          = format("alias/%v", module.label.id)
   target_key_id = join("", aws_kms_key.cluster.*.key_id)
 }
@@ -137,7 +137,7 @@ resource "aws_eks_cluster" "default" {
   enabled_cluster_log_types = var.enabled_cluster_log_types
 
   dynamic "encryption_config" {
-    for_each = var.enable_cluster_encryption_config ? [local.cluster_encryption_config] : []
+    for_each = var.cluster_encryption_config_enabled ? [local.cluster_encryption_config] : []
     content {
       resources = lookup(encryption_config.value, "resources")
       provider {
